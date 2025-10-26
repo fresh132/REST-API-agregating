@@ -13,7 +13,7 @@ func Connect() *pgxpool.Pool {
 	dbURL := os.Getenv("DATABASE_URL")
 
 	if dbURL == "" {
-		log.Fatalln("DATABASE_URL не задан в .env")
+		log.Fatalln("DATABASE_URL not found")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -21,14 +21,14 @@ func Connect() *pgxpool.Pool {
 
 	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
-		log.Fatalln("Ошибка при создании пула подключений:", err)
+		log.Fatalln("Error create pool db:", err)
 	}
 
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatalln("Не удалось подключиться к базе данных:", err)
+		log.Fatalln("db not found:", err)
 	}
 
-	log.Println("Подключение к базе данных установлено")
+	log.Println("Connected to db")
 
 	return pool
 }
