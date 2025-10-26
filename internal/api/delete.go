@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/fresh132/REST-API-agregating/internal/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,6 +27,10 @@ func (h *Handler) DeleteSubscription(c *gin.Context) {
 	id, err := strconv.Atoi(idStr)
 
 	if err != nil {
+		logger.Error.Error("Invalid subscription ID",
+			"id", idStr,
+			"error", err.Error(),
+		)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid subscription ID"})
 		return
 	}
@@ -35,11 +40,16 @@ func (h *Handler) DeleteSubscription(c *gin.Context) {
 	err = h.repo.Delete(ctx, id)
 
 	if err != nil {
+		logger.Error.Error("failed to delete subscription",
+			"id", id,
+			"error", err.Error(),
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete subscription",
 			"details": err.Error(),
 		})
 		return
 	}
 
+	logger.Info.Info("Delete Subscription OK", "id", idStr)
 	c.JSON(http.StatusOK, gin.H{"message": "subscription deleted successfully"})
 }

@@ -30,12 +30,7 @@
     go mod tidy
     ```
 
-4.  **Сгенерируйте Swagger документацию:**
-    ```bash
-    go install github.com/swaggo/swag/cmd/swag@latest
-    ```
-
-5.  **Запустите сервисы с Docker Compose:**
+4.  **Запустите сервисы с Docker Compose:**
     ```bash
     docker-compose up --build -d
     ```

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fresh132/REST-API-agregating/internal/logger"
 	"github.com/fresh132/REST-API-agregating/internal/repository"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -30,6 +31,10 @@ func (h *Handler) UpdateSubscription(c *gin.Context) {
 	id, err := strconv.Atoi(idStr)
 
 	if err != nil {
+		logger.Error.Error("Invalid subscription ID",
+			"id", idStr,
+			"error", err.Error(),
+		)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid subscription ID"})
 		return
 	}
@@ -50,6 +55,10 @@ func (h *Handler) UpdateSubscription(c *gin.Context) {
 	startDate, err := time.Parse("01-2006", input.StartDate)
 
 	if err != nil {
+		logger.Warn.Warn("Invalid start date format",
+			"start_date", input.StartDate,
+			"error", err.Error(),
+		)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start date format"})
 		return
 	}
@@ -59,6 +68,10 @@ func (h *Handler) UpdateSubscription(c *gin.Context) {
 	if input.EndDate != "" {
 		parsedEndDate, err := time.Parse("01-2006", input.EndDate)
 		if err != nil {
+			logger.Error.Error("Invalid end date format",
+				"end_date", input.EndDate,
+				"error", err.Error(),
+			)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end date format"})
 			return
 		}
@@ -69,6 +82,10 @@ func (h *Handler) UpdateSubscription(c *gin.Context) {
 	userUUID, err := uuid.Parse(input.UserID)
 
 	if err != nil {
+		logger.Error.Error("Invalid user ID format",
+			"user_id", input.UserID,
+			"error", err.Error(),
+		)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID format"})
 		return
 	}
@@ -87,9 +104,21 @@ func (h *Handler) UpdateSubscription(c *gin.Context) {
 	err = h.repo.Update(ctx, id, sub)
 
 	if err != nil {
+		logger.Error.Error("Failed to update subscription",
+			"id", id,
+			"error", err.Error(),
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update subscription"})
 		return
 	}
 
+	logger.Info.Info("subscription updated successfully",
+		"id", id,
+		"service_name", input.ServiceName,
+		"price", input.Price,
+		"user_id", input.UserID,
+		"start_date", input.StartDate,
+		"end_date", input.EndDate,
+	)
 	c.JSON(http.StatusOK, gin.H{"message": "subscription updated successfully"})
 }

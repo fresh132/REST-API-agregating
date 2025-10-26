@@ -12,6 +12,7 @@ import (
 	_ "github.com/fresh132/REST-API-agregating/docs"
 	"github.com/fresh132/REST-API-agregating/internal/api"
 	"github.com/fresh132/REST-API-agregating/internal/db"
+	"github.com/fresh132/REST-API-agregating/internal/logger"
 	"github.com/fresh132/REST-API-agregating/internal/repository"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,8 @@ func main() {
 	} else {
 		gin.SetMode(gin.DebugMode)
 	}
+
+	logger.InitLogger()
 
 	pool := db.Connect()
 

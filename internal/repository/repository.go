@@ -117,7 +117,7 @@ func (r *SubscriptionRepository) ListSubscriptionsFil(ctx context.Context, userI
 	return subs, nil
 }
 
-func (r *SubscriptionRepository) GetTotal(ctx context.Context, userID *uuid.UUID, serviceName *string, startDate, endDate time.Time) (float64, error) {
+func (r *SubscriptionRepository) GetTotal(ctx context.Context, userID *uuid.UUID, serviceName *string, startDate, endDate time.Time) (int, error) {
 	query := `
 		SELECT COALESCE(SUM(price), 0)
 		FROM subscriptions
@@ -139,7 +139,7 @@ func (r *SubscriptionRepository) GetTotal(ctx context.Context, userID *uuid.UUID
 		argIndex++
 	}
 
-	var total float64
+	var total int
 	err := r.db.QueryRow(ctx, query, args...).Scan(&total)
 	if err != nil {
 		return 0, err

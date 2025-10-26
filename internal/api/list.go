@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/fresh132/REST-API-agregating/internal/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -27,9 +28,11 @@ func (h *Handler) ListSubscriptions(c *gin.Context) {
 		parsedUserID, err := uuid.Parse(userIDStr)
 
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID format",
-				"details": err.Error(),
-			})
+			logger.Error.Error("invalid user ID format",
+				"user_id", userIDStr,
+				"error", err.Error(),
+			)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID format"})
 			return
 		}
 
@@ -46,11 +49,15 @@ func (h *Handler) ListSubscriptions(c *gin.Context) {
 
 	subscriptions, err := h.repo.ListSubscriptionsFil(ctx, userID, serviceName)
 	if err != nil {
+		logger.Error.Error("failed to get subscriptions",
+			"error", err.Error(),
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get subscriptions",
 			"details": err.Error(),
 		})
 		return
 	}
 
+	logger.Info.Info("Get list OK", "id", userID)
 	c.JSON(http.StatusOK, subscriptions)
 }

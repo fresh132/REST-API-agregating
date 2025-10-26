@@ -17,8 +17,8 @@ type UpdateSubscriptionRequest struct {
 }
 
 type CreateSubscriptionResponse struct {
-	ID      int    `json:"id" example:"1"`
-	Message string `json:"message" example:"subscription created successfully"`
+	ID       int    `json:"id" example:"1"`
+	Memssage string `json:"essage" example:"subscription created successfully"`
 }
 
 type SuccessResponse struct {
