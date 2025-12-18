@@ -104,6 +104,13 @@ func (h *Handler) UpdateSubscription(c *gin.Context) {
 	err = h.repo.Update(ctx, id, sub)
 
 	if err != nil {
+		if err.Error() == "subscription not found" {
+			logger.Warn.Warn("subscription not found",
+				"id", id,
+			)
+			c.JSON(http.StatusNotFound, gin.H{"error": "subscription not found"})
+			return
+		}
 		logger.Error.Error("Failed to update subscription",
 			"id", id,
 			"error", err.Error(),

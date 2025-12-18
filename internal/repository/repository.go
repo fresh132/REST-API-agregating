@@ -51,12 +51,20 @@ func (r *SubscriptionRepository) GetByID(ctx context.Context, id int) (Subscript
 }
 
 func (r *SubscriptionRepository) Update(ctx context.Context, id int, sub Subscription) error {
-	_, err := r.db.Exec(
+	tag, err := r.db.Exec(
 		ctx, `UPDATE subscriptions SET service_name=$1, price=$2, user_id=$3, start_date=$4, end_date=$5, updated_at=NOW() WHERE id=$6`,
 		sub.ServiceName, sub.Price, sub.UserID, sub.StartDate, sub.EndDate, id,
 	)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	if tag.RowsAffected() == 0 {
+		return errors.New("subscription not found")
+	}
+
+	return nil
 }
 
 func (r *SubscriptionRepository) Delete(ctx context.Context, id int) error {
@@ -75,12 +83,12 @@ func (r *SubscriptionRepository) Delete(ctx context.Context, id int) error {
 	return err
 }
 
-func (r *SubscriptionRepository) ListSubscriptionsFil(ctx context.Context, userID *uuid.UUID, serviceName *string) ([]Subscription, error) {
-	query := `SELECT id, service_name, price, user_id, start_date, end_date, created_at, updated_at 
-	          FROM subscriptions WHERE 1=1`
-
+func (r *SubscriptionRepository) ListSubscriptionsFil(ctx context.Context, userID *uuid.UUID, serviceName *string, limit, offset int) ([]Subscription, error) {
+	var subs []Subscription
 	args := []interface{}{}
 	argIndex := 1
+	query := `SELECT id, service_name, price, user_id, start_date, end_date, created_at, updated_at 
+	          FROM subscriptions WHERE 1=1`
 
 	if userID != nil {
 		query += ` AND user_id=$` + strconv.Itoa(argIndex)
@@ -94,7 +102,8 @@ func (r *SubscriptionRepository) ListSubscriptionsFil(ctx context.Context, userI
 		argIndex++
 	}
 
-	query += ` ORDER BY created_at DESC`
+	query += ` ORDER BY created_at DESC LIMIT $` + strconv.Itoa(argIndex) + ` OFFSET $` + strconv.Itoa(argIndex+1)
+	args = append(args, limit, offset)
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
@@ -102,7 +111,6 @@ func (r *SubscriptionRepository) ListSubscriptionsFil(ctx context.Context, userI
 	}
 	defer rows.Close()
 
-	var subs []Subscription
 	for rows.Next() {
 		var s Subscription
 		if err := rows.Scan(
@@ -118,14 +126,23 @@ func (r *SubscriptionRepository) ListSubscriptionsFil(ctx context.Context, userI
 }
 
 func (r *SubscriptionRepository) GetTotal(ctx context.Context, userID *uuid.UUID, serviceName *string, startDate, endDate time.Time) (int64, error) {
+	var total int64
+	args := []interface{}{}
+	argIndex := 1
+
+	// Calculate the number of months for each subscription within the period
+	// Formula: (year_diff * 12) + month_diff + 1 (to include both start and end month)
 	query := `
-		SELECT COALESCE(SUM(price), 0)
+		SELECT COALESCE(SUM(price * (
+			(EXTRACT(YEAR FROM LEAST(COALESCE(end_date, $1), $1)) - EXTRACT(YEAR FROM GREATEST(start_date, $2))) * 12 +
+			(EXTRACT(MONTH FROM LEAST(COALESCE(end_date, $1), $1)) - EXTRACT(MONTH FROM GREATEST(start_date, $2))) + 1
+		)), 0) AS total
 		FROM subscriptions
-		WHERE (start_date <= $2)
-		AND (end_date IS NULL OR end_date >= $1)
+		WHERE start_date <= $1
+		AND (end_date IS NULL OR end_date >= $2)
 	`
-	args := []interface{}{startDate, endDate}
-	argIndex := 3
+	args = append(args, endDate, startDate)
+	argIndex = 3
 
 	if userID != nil {
 		query += ` AND user_id=$` + strconv.Itoa(argIndex)
@@ -139,7 +156,6 @@ func (r *SubscriptionRepository) GetTotal(ctx context.Context, userID *uuid.UUID
 		argIndex++
 	}
 
-	var total int64
 	err := r.db.QueryRow(ctx, query, args...).Scan(&total)
 	if err != nil {
 		return 0, err

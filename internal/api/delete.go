@@ -40,6 +40,13 @@ func (h *Handler) DeleteSubscription(c *gin.Context) {
 	err = h.repo.Delete(ctx, id)
 
 	if err != nil {
+		if err.Error() == "id not found" {
+			logger.Warn.Warn("subscription not found",
+				"id", id,
+			)
+			c.JSON(http.StatusNotFound, gin.H{"error": "subscription not found"})
+			return
+		}
 		logger.Error.Error("failed to delete subscription",
 			"id", id,
 			"error", err.Error(),

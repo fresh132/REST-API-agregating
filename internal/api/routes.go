@@ -7,7 +7,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func SetupRoutes(router *gin.Engine, repo *repository.SubscriptionRepository) {
+func SetupRoutes(router *gin.Engine, repo repository.SubscriptionRepo) {
 	handler := NewHandler(repo)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

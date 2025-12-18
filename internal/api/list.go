@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/fresh132/REST-API-agregating/internal/logger"
 	"github.com/gin-gonic/gin"
@@ -11,13 +12,15 @@ import (
 
 // ListSubscriptions godoc
 // @Summary List subscriptions
-// @Description Get a list of subscriptions with optional filtering
+// @Description Get a list of subscriptions with optional filtering and pagination
 // @Tags subscriptions
 // @Accept json
 // @Produce json
 // @Param user_id query string false "User ID for filtering"
 // @Param service_name query string false "Service name for filtering"
-// @Success 200 {array} repository.Subscription
+// @Param limit query int false "Number of results per page (default 10)"
+// @Param offset query int false "Number of results to skip (default 0)"
+// @Success 200 {object} ListSubscriptionsResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /subscriptions [get]
@@ -45,9 +48,32 @@ func (h *Handler) ListSubscriptions(c *gin.Context) {
 		serviceName = &serviceNameStr
 	}
 
+	limit := 10
+	offset := 0
+
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		} else {
+			logger.Warn.Warn("invalid limit parameter",
+				"limit", limitStr,
+			)
+		}
+	}
+
+	if offsetStr := c.Query("offset"); offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		} else {
+			logger.Warn.Warn("invalid offset parameter",
+				"offset", offsetStr,
+			)
+		}
+	}
+
 	ctx := context.Background()
 
-	subscriptions, err := h.repo.ListSubscriptionsFil(ctx, userID, serviceName)
+	subscriptions, err := h.repo.ListSubscriptionsFil(ctx, userID, serviceName, limit, offset)
 	if err != nil {
 		logger.Error.Error("failed to get subscriptions",
 			"error", err.Error(),
@@ -58,6 +84,10 @@ func (h *Handler) ListSubscriptions(c *gin.Context) {
 		return
 	}
 
-	logger.Info.Info("Get list OK", "id", userID)
-	c.JSON(http.StatusOK, subscriptions)
+	logger.Info.Info("Get list OK", "user_id", userID, "limit", limit, "offset", offset)
+	c.JSON(http.StatusOK, gin.H{
+		"data":   subscriptions,
+		"limit":  limit,
+		"offset": offset,
+	})
 }
